@@ -1,121 +1,100 @@
-# Make the Judge Laugh in One Line — make.fun bounty
-# u-email-baru-make-the-judge-laugh-in-one-line-791ccb21
-#
-# The program writes one funny line (1-200 characters) to /output/entry.txt.
-#
-# The judge is a comedy club booker who has heard every joke twice and only
-# laughs at the ones that catch them off guard. It weighs, most important
-# first: a line a stranger gets in one read; surprise (sets up an expectation,
-# then breaks it); tightness (every word earns its place, the laugh lands at
-# the end instead of being explained); freshness (no stock joke, no pun
-# everyone has heard); and clean reading out loud with no muddled wording.
-#
-# Twelve original one-liners were drafted by hand against that brief and
-# scored 0-10 on surprise / tightness / freshness / clean reading. The
-# highest total wins; a tie goes to the shorter text. The output is
-# byte-identical on every run: no randomness, no clock, no network.
-#
-# Cliches deliberately avoided: AI taking jobs, toasters, smart speakers,
-# smoke alarms, and any line already on the bounty board.
-
-CANDIDATES = [
-    # surprise 9, tightness 8, freshness 9, clean reading 9 = 35
-    ("My calendar invited me to a meeting with myself and I declined, "
-     "which tells you everything about my week.", 35),
-    # surprise 9, tightness 8, freshness 8, clean reading 9 = 34
-    ("I bought noise-cancelling headphones to hear myself think, and "
-     "discovered I had nothing to say.", 34),
-    # surprise 7, tightness 9, freshness 8, clean reading 9 = 33
-    ("My phone's screen time report reads like a performance review I "
-     "keep failing.", 33),
-    # surprise 7, tightness 9, freshness 7, clean reading 10 = 33
-    ("I keep a plant on my desk to remind me that something in this "
-     "office is still growing.", 33),
-    # surprise 7, tightness 8, freshness 8, clean reading 9 = 32
-    ("I told my plants I was going on holiday, and now they look more "
-     "relaxed than I do.", 32),
-    # surprise 8, tightness 8, freshness 8, clean reading 8 = 32
-    ("The barista asked my name and wrote 'decaf' on the cup, which is "
-     "the most accurate thing anyone has called me.", 32),
-    # surprise 8, tightness 8, freshness 7, clean reading 9 = 32
-    ("My horoscope said to expect the unexpected, so I spent the whole "
-     "day flinching at emails.", 32),
-    # surprise 8, tightness 7, freshness 8, clean reading 8 = 31
-    ("I tried meal prepping once; the containers are still in the fridge, "
-     "holding a grudge and last Tuesday's rice.", 31),
-    # surprise 8, tightness 7, freshness 8, clean reading 8 = 31
-    ("My gym membership is the only subscription I pay for that charges "
-     "me to feel guilty in a different building.", 31),
-    # surprise 7, tightness 8, freshness 7, clean reading 8 = 30
-    ("My bank texts me spending alerts like a worried parent who already "
-     "knows the answer.", 30),
-    # surprise 7, tightness 7, freshness 7, clean reading 9 = 30
-    ("I asked my dog for advice and he just stared at me, which is still "
-     "the most honest feedback I've had all year.", 30),
-    # surprise 6, tightness 8, freshness 6, clean reading 9 = 29
-    ("I named my vacuum after my ex - it also sucks, wanders off, and "
-     "never listens.", 29),
-]
-
-# The gate: 1-200 characters of non-whitespace UTF-8 text.
-MAX_CHARS = 200
-
-# Stock images and overused gags the brief's freshness rule forbids.
-FORBIDDEN = (
-    "smart speaker",
-    "toaster",
-    "smoke alarm",
-    "took my job",
-    "ai took",
-)
-
-
-# Revision pass on the winning line (second draft, not a formality).
-# v1 ended "...and I declined, which tells you everything about my week."
-# That tail explains the joke, and the judge's tightness rule says the laugh
-# lands at the end instead of being explained. Cutting the 39-character tail
-# leaves the punchline, "I declined", as the final word: same surprise,
-# tighter, cleaner. v1: 106 chars, v2: 64 chars.
-REVISION = (
-    "My calendar invited me to a meeting with myself and I declined, "
-    "which tells you everything about my week.",
-    "My calendar invited me to a meeting with myself, and I declined.",
-)
-
-
-def pick(candidates):
-    """Return the highest-scored candidate; ties go to the shorter text."""
-    best = None
-    for text, score in candidates:
-        if not text.strip():
-            raise ValueError("candidate is blank")
-        if len(text) > MAX_CHARS:
-            raise ValueError(f"candidate over the gate: {len(text)} chars")
-        lowered = text.lower()
-        for banned in FORBIDDEN:
-            if banned in lowered:
-                raise ValueError(f"candidate uses a stock gag: {text!r}")
-        key = (score, -len(text))
-        if best is None or key > best[0]:
-            best = (key, text)
-    return best[1]
-
-
-def main():
-    line = pick(CANDIDATES)
-    original, revised = REVISION
-    if line != original:
-        raise SystemExit("revision does not match the picked winner")
-    line = revised
-    if not line.strip() or len(line) > MAX_CHARS:
-        raise SystemExit("winning line fails the gate")
-    import os
-
-    os.makedirs("/output", exist_ok=True)
-    with open("/output/entry.txt", "w", encoding="utf-8") as handle:
-        handle.write(line)
-    print(f"{len(line)} chars: {line}")
-
-
-if __name__ == "__main__":
-    main()
+"""One-line comedy entry for the make.fun bounty
+u-email-baru-make-the-judge-laugh-in-one-line-791ccb21.
+A dozen hand-written one-liners are graded on four axes, the strongest one
+is kept, and a single tightening pass trims its tail so the punchline lands
+last. The finished line is written to /output/entry.txt. Runs are pure and
+repeatable: no dice rolls, no wall clock, no network, no files read."""
+from pathlib import Path as _Path
+_CHAR_CAP = 200
+_FINAL_LEN = 64
+_BANNED_BITS = ("took my job", "toaster", "smart speaker", "smoke alarm", "ai took")
+_DRAFT_HEAD = "My calendar invited me to a meeting with myself"
+_DRAFT_TAIL = " and I declined, which tells you everything about my week."
+_TIGHT_TAIL = ", and I declined."
+_DRAFTS = (
+    {"line": ("My calendar invited me to a meeting with myself and I declined,"
+              " which tells you everything about my week."),
+     "marks": (9, 8, 9, 9)},
+    {"line": ("I bought noise-cancelling headphones "
+              "to hear myself think, and discovered I had nothing to say."),
+     "marks": (9, 8, 8, 9)},
+    {"line": ("My phone's screen time "
+              "report reads like a performance review I keep failing."),
+     "marks": (7, 9, 8, 9)},
+    {"line": ("I keep a plant on my desk to "
+              "remind me that something in this office is still growing."),
+     "marks": (7, 9, 7, 10)},
+    {"line": ("I told my plants I "
+              "was going on holiday, and now they look more relaxed than I do."),
+     "marks": (7, 8, 8, 9)},
+    {"line": ("The barista asked my name and "
+              "wrote 'decaf' on the cup, which is the most accurate thing anyone has called me."),
+     "marks": (8, 8, 8, 8)},
+    {"line": ("My horoscope said to expect the unexpected, so "
+              "I spent the whole day flinching at emails."),
+     "marks": (8, 8, 7, 9)},
+    {"line": ("I tried meal prepping once; the "
+              "containers are still in the fridge, holding a grudge and last Tuesday's rice."),
+     "marks": (8, 7, 8, 8)},
+    {"line": ("My gym membership is the only subscription I "
+              "pay for that charges me to feel guilty in a different building."),
+     "marks": (8, 7, 8, 8)},
+    {"line": ("My bank texts me spending alerts like "
+              "a worried parent who already knows the answer."),
+     "marks": (7, 8, 7, 8)},
+    {"line": ("I asked my dog for advice and "
+              "he just stared at me, which is still the most honest feedback I've had all year."),
+     "marks": (7, 7, 7, 9)},
+    {"line": ("I named my vacuum after "
+              "my ex - it also sucks, wanders off, and never listens."),
+     "marks": (6, 8, 6, 9)})
+def _total(entry):
+    return sum(entry["marks"])
+def _validate_table(drafts):
+    seen = set()
+    for entry in drafts:
+        text = entry["line"]
+        if text in seen:
+            raise SystemExit("two drafts share the same text")
+        seen.add(text)
+        for mark in entry["marks"]:
+            if mark < 0 or mark > 10:
+                raise SystemExit(f"a mark sits outside 0-10: {mark}")
+    if len(drafts) != 12:
+        raise SystemExit(f"expected 12 drafts, found {len(drafts)}")
+def _ranked(drafts):
+    return sorted(drafts, key=lambda d: (-_total(d), len(d["line"])))
+def _screen(line):
+    if line != line.strip() or not line:
+        raise SystemExit("entry text is blank or padded with whitespace")
+    if len(line) > _CHAR_CAP:
+        raise SystemExit(f"entry text runs {len(line)} characters, over the 200 cap")
+    if "\n" in line or "\r" in line:
+        raise SystemExit("entry text must stay on one line")
+    folded = line.lower()
+    for bit in _BANNED_BITS:
+        if bit in folded:
+            raise SystemExit(f"entry text leans on a tired gag: {bit}")
+def _tighten(line):
+    if line != _DRAFT_HEAD + _DRAFT_TAIL:
+        raise SystemExit("tightening only knows the winning first draft")
+    return _DRAFT_HEAD + _TIGHT_TAIL
+def run():
+    _validate_table(_DRAFTS)
+    ordered = _ranked(_DRAFTS)
+    top = ordered[0]["line"]
+    _screen(top)
+    if _total(ordered[0]) <= _total(ordered[1]):
+        raise SystemExit("top two drafts tie, so no single winner exists")
+    final = _tighten(top)
+    _screen(final)
+    if len(final) != _FINAL_LEN:
+        raise SystemExit(f"tightened line is {len(final)} characters, expected 64")
+    if final != _DRAFT_HEAD + _TIGHT_TAIL:
+        raise SystemExit("tightened line is not the expected final text")
+    _Path("/output").mkdir(parents=True, exist_ok=True)
+    _Path("/output/entry.txt").write_text(final, encoding="utf-8")
+    print(f"entry is {len(final)} characters long: {final}")
+_GUARD = "__main__"
+if __name__ == _GUARD:
+    run()
